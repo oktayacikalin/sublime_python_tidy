@@ -136,12 +136,6 @@ class PythonTidyCommand(sublime_plugin.TextCommand):
             line = self.view.line(region)
             self.view.replace(edit, line, output)
             regions.append(line)
-
-            # new_view = self.view.window().new_file()
-            # new_view.set_scratch(1)
-            # new_view.set_name('Python Tidy Output')
-            # new_view.insert(edit, 0, output)
         
         self._debug('regions replaced:', regions)
-        # drawType = sublime.DRAW_EMPTY
-        # self.view.add_regions('python_tidy', regions, 'keyword', drawType)
+        [self.view.sel().add(region) for region in regions]

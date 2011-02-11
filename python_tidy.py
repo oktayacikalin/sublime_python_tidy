@@ -56,23 +56,19 @@ class PythonTidyCommand(sublime_plugin.TextCommand):
         PythonTidy.ADD_BLANK_LINES_AROUND_COMMENTS = False
         for region in self.view.sel():
             self._debug('region =', region, type(region))
-            line = self.view.line(region)
-            self._debug('line =', line, type(line))
-            line_begin = self.view.rowcol(line.begin())[0] + 1
-            line_end = self.view.rowcol(line.end())[0] + 1
+            line_begin = self.view.rowcol(region.begin())[0] + 1
+            line_end = self.view.rowcol(region.end())[0] + 1
             self._debug('line_begin =', line_begin)
             self._debug('line_end =', line_end)
-            line_contents = self.view.substr(line)
-
-            stripped = 0
-            # remove last row from line_contents
-            last_row = line_contents[line_contents.rfind('\n'):]
-            self._debug('last_row =', last_row.__repr__())
-            if len(last_row) and last_row[-1] == '\n':
-                if len(last_row.strip()) and '\n' in line_contents:
-                    self._debug('strip', ord(last_row[-1]), last_row[-1])
-                    stripped = line_contents.rfind('\n')
-                    line_contents = line_contents[:stripped]
+            if line_end - line_begin == 0:
+                self._debug('single line')
+                region = self.view.line(region)
+            else:
+                self._debug('multi line')
+                row, col = self.view.rowcol(region.end())
+                point = self.view.text_point(row, col)
+                region = sublime.Region(region.begin(), point)
+            line_contents = self.view.substr(region)
 
             whitespace = re.compile('^(\s*)')
             smallest_indent = None
@@ -124,17 +120,13 @@ class PythonTidyCommand(sublime_plugin.TextCommand):
                     output[row] = ' ' * smallest_indent + line
                 output = '\n'.join(output)
             
-            if stripped:
-                output += last_row
-
-            self._debug('stripped =', stripped)
             if has_trailing_newline:
                 output += '\n'
 
             self._debug('output =', output.__repr__())
 
-            line = self.view.line(region)
-            self.view.replace(edit, line, output)
+            self.view.replace(edit, region, output)
+            line = sublime.Region(region.begin(), region.begin() + len(output))
             regions.append(line)
         
         self._debug('regions replaced:', regions)
